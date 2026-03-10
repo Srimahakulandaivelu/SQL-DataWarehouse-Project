@@ -1,0 +1,143 @@
+-- this is script is written in mySql database , change it it SQL server
+-- bulk loading the dataset data into the tables
+
+-- this function loads local data form the given file destination into the specified table
+
+delimiter //
+create procedure bronze.load_bronze()
+begin
+	set @start_time as datetime , @end_time as datetime;
+    set @batch_time as datetime;
+	begin try
+		select "==========================================";
+		select "Loading Bronze data";
+        select "==========================================";
+        
+        select "------------------------------------------";
+        select "Loading CRM Tables";
+        select "------------------------------------------";
+        
+        select "Truncating the Table: crm_cust_info ";
+        
+        set start_time = getDate();
+        
+		LOAD DATA LOCAL INFILE 'C:/Users/Srimaha K/Downloads/MySQL-Database/SQL - Data warehouse project/datasets/source_crm/cust_info.csv'
+		INTO TABLE crm_cust_info 
+		FIELDS TERMINATED BY ',' -- seperates the values by ','
+		ENCLOSED BY '"'
+		LINES TERMINATED BY '\n' -- the lines terminates at the new line
+		IGNORE 1 ROWS -- since most of the datasets contains the row names in the first row, ignoring it
+		(cst_id, cst_key, cst_firstname, cst_lastname, cst_marital_status, cst_gndr, cst_create_date); -- maps these row names to the fields in the datasets
+        
+        set end_time = getDate();
+
+		-- used to check if the dataset is corretly loaded or not
+		select count(*) from crm_cust_info; -- 18490 rows
+        set batch_time  = batch_time + dateDiff(seconds, start_time, end_time);
+        select "Load Duration :" + dateDiff(seconds, start_time, end_time);
+        
+		select "Truncating the Table: crm_prd_info ";
+        set start_time = getDate();
+        
+		load data local infile 'C:/Users/Srimaha K/Downloads/MySQL-Database/SQL - Data warehouse project/datasets/source_crm/prd_info.csv'
+		into table crm_prd_info
+		fields terminated by ','
+		enclosed by '"'
+		lines terminated by '\n'
+		ignore 1 rows
+		(prd_id, prd_key, prd_nm, prd_cost, prd_line, prd_start_dt, prd_end_dt);
+        
+        set end_time = getDate();
+
+		select count(*) from crm_prd_info;
+        set batch_time  = batch_time + dateDiff(seconds, start_time, end_time);
+        select "Load Duration :" + dateDiff(seconds, start_time, end_time);
+
+		select "Truncating the Table: crm_sales_details";
+        set start_time = getDate();
+        
+		load data local infile 'C:/Users/Srimaha K/Downloads/MySQL-Database/SQL - Data warehouse project/datasets/source_crm/sales_details.csv'
+		into table crm_sales_details
+		fields terminated by ','
+		enclosed by '"'
+		lines terminated by '\n'
+		ignore 1 rows
+		(sls_ord_num, sls_prd_key, sls_cust_id, sls_order_dt, sls_ship_dt, sls_due_dt, sls_sales, sls_quantity, sls_price);
+        
+        set end_time = getDate();
+
+		select count(*) from crm_sales_details;
+        set batch_time  = batch_time + dateDiff(seconds, start_time, end_time);
+        select "Load Duration :" + dateDiff(seconds, start_time, end_time);
+
+		select "------------------------------------------";
+        select "Loading ERP Tables";
+        select "------------------------------------------";
+        
+        select "Truncating the Table: erp_cust_az12";
+        
+        set start_time = getDate();
+        
+		load data local infile 'C:/Users/Srimaha K/Downloads/MySQL-Database/SQL - Data warehouse project/datasets/source_erp/cust_az12.csv'
+		into table erp_cust_az12
+		fields terminated by ','
+		enclosed by '"'
+		lines terminated by'\n'
+		ignore 1 rows
+		(cid, bdate, gen);
+        
+        set end_time = getDate();
+
+		select count(*) from erp_cust_az12;
+        set batch_time  = batch_time + dateDiff(seconds, start_time, end_time);
+        select "Load Duration :" + dateDiff(seconds, start_time, end_time);
+        
+        select "Truncating the Table: erp_loc_a101";
+
+		set start_time = getDate();
+        
+		load data local infile 'C:/Users/Srimaha K/Downloads/MySQL-Database/SQL - Data warehouse project/datasets/source_erp/erp_loc_a101.csv'
+		into table erp_loc_a101
+		fields terminated by ','
+		enclosed by '"'
+		lines terminated by '\n'
+		ignore 1 rows
+		(cid, cntry);
+        
+        set end_time = getDate();
+
+		select count(*) from erp_loc_a101;
+        set batch_time  = batch_time + dateDiff(seconds, start_time, end_time);
+        select "Load Duration :" + dateDiff(seconds, start_time, end_time);
+        
+        select "Truncating the Table: erp_px_cat_g1v2";
+        
+        set start_time = getDate();
+
+		load data local infile 'C:/Users/Srimaha K/Downloads/MySQL-Database/SQL - Data warehouse project/datasets/source_erp/erp_px_cat_g1v2.csv'
+		into table erp_px_cat_g1v2
+		fields terminated by ','
+		enclosed by '"'
+		lines terminated by '\n'
+		ignore 1 rows
+		(id, cat, subcat, maintenance);
+        
+        set end_time = getDate();
+
+		select count(*) from erp_px_cat_g1v2;	
+        set batch_time  = batch_time + dateDiff(seconds, start_time, end_time);
+        select "Load Duration :" + dateDiff(seconds, start_time, end_time);
+        
+        select "Total Duration to load Bronze Layer: " + batch_time;
+	end try
+    
+    begin catch
+		select "==========================================";
+		select "Error Loading the data into Bronze layer";
+        select "Error message: " + error_message();
+        select "Error number: " + cast(error_number() as varchar);
+        select "==========================================";
+    end catch
+
+end //
+
