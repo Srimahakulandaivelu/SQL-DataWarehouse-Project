@@ -1,0 +1,37 @@
+-- quality checks for the silver layer table (ERP_LOC_A101)
+
+-- checking if the cid column in this table is matching with the cust_key column from the crm_cust_info table
+-- expected result: null
+
+select * from silver.erp_loc_a101 where cid not in
+(select cst_key from silver.crm_cust_info);
+
+-- normalising the country names
+-- expected result: Standardized names
+
+select distinct(cntry)
+from silver.erp_loc_a101
+order by cntry;
+
+-- the below code is the clean and transform the data
+
+insert into silver.erp_loc_a101(
+    cid,
+	cntry
+)
+
+select 
+
+-- transforming the cis on this table to match with crm_cust_info cst_key
+replace(cid, '-', ''),
+
+-- nomalizing the country data
+
+case when upper(trim(cntry)) in ('US', 'USA') then 'United States'
+	 when upper(trim(cntry)) = 'DE' then 'Germany'
+	 when trim(cntry) = '' or cntry is null then 'n/a'
+	 else trim(cntry)
+end as cntry
+
+
+from bronze.erp_loc_a101;
