@@ -1,0 +1,107 @@
+-- quality check of the table (CRM_SALES_DETAILS)
+
+-- checking for trailing spaces in the sales order number
+-- expected result : null
+
+select * 
+from silver.crm_sales_details
+where sls_ord_num != trim(sls_ord_num);
+
+-- checking if the sls_prd_key is correctly mapped with the prd_key in crm_prd_info table
+-- expected result: null 
+
+select *
+from silver.crm_sales_details
+where sls_prd_key not in (select prd_key from silver.crm_prd_info);
+
+-- checking if the sls_cust_id is correctly mapped with the cust_id in crm_cust_info table
+-- expected result: null
+
+select *
+from silver.crm_sales_details
+where sls_cust_id not in (select cst_id from silver.crm_cust_info);
+
+-- casting the sls_order_dt, sls_ship_dt, sls_due_dt to correct date format
+-- incorrect format - len(date) != 8 or date <= 0 (neg values)
+-- expected result: date format values, 
+
+select sls_ord_num ,sls_order_dt
+from silver.crm_sales_details
+where sls_order_dt <= 0 or len(sls_order_dt) != 8;
+
+-- checking the order of the dates
+-- expected result: null
+
+select * 
+from silver.crm_sales_details
+where sls_order_dt > sls_ship_dt or sls_order_dt > sls_due_dt;
+
+-- ensuring consistency in sales, quantity and price
+-- expected result: null
+-- >> Sales = Quantity * cost
+-- >> values should not be NULL, zero, negative
+
+-- business rules : if the sales is null, zero or negative derive it from sales and quantity
+-- if the price is null or zero calculate using sales and quantity
+-- if the price is neagtive , convert it to positive
+
+select distinct
+sls_sales,
+sls_quantity,
+sls_price
+from silver.crm_sales_details
+where sls_sales != sls_quantity * sls_price or
+sls_sales is null or sls_quantity is null or sls_price is null or
+sls_sales <= 0 or sls_quantity <= 0 or sls_price <= 0
+order by sls_sales, sls_quantity, sls_price;
+
+-- the below code is used to insert the cleaned and transformed data into the silver layer
+insert into silver.crm_sales_details(
+    sls_ord_num,
+    sls_prd_key,
+    sls_cust_id,
+    sls_order_dt,
+    sls_ship_dt,
+    sls_due_dt,
+    sls_sales,
+    sls_quantity,
+    sls_price
+)
+select 
+sls_ord_num,
+sls_prd_key,
+sls_cust_id,
+
+-- casting the sls_order_dt integer column to date format
+case when len(sls_order_dt) != 8 or sls_order_dt <= 0 then NULL
+     else cast(cast(sls_order_dt as varchar) as date)
+end as sls_order_dt,
+
+-- casting the sls_ship_dt integer column to date format
+case when len(sls_ship_dt) != 8 or sls_ship_dt <= 0 then NULL
+     else cast(cast(sls_ship_dt as varchar) as date)
+end as sls_ship_dt,
+
+
+-- casting the sls_due_dt integer column to date format
+case when len(sls_due_dt) != 8 or sls_due_dt <= 0 then NULL 
+     else cast(cast(sls_due_dt as varchar) as date)
+end as sls_due_dt,
+
+
+-- ensuring consistency of the sls_sales columns
+case when sls_sales is null or sls_sales <= 0 or sls_sales != sls_quantity * abs(sls_price)
+    then sls_quantity * abs(sls_price)
+    else sls_sales
+end as sls_sales,
+
+sls_quantity,
+
+--ensuring the sls_prices are consistent
+case when sls_price is null or sls_price <= 0
+    then sls_sales / nullif(sls_quantity, 0)
+    else sls_price
+end as sls_price
+
+from bronze.crm_sales_details;
+
