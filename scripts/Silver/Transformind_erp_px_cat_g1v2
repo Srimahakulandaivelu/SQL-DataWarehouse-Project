@@ -1,0 +1,29 @@
+-- quality check for the silver Layer table (ERP_PX_CAT_G1V2)
+
+-- checking if the id column in this table is matching with the cat_id column from the crm_prd_info table
+-- expected result: null
+
+select * from silver.erp_px_cat_g1v2 where id not in
+(select cat_id from silver.crm_prd_info);
+
+-- checking if the data is standard or not in (cat, subcat, maintenance)
+-- expected result: standard data
+
+select distinct maintenance
+from silver.erp_px_cat_g1v2
+
+-- the below code is used to clean the data
+
+insert into silver.erp_px_cat_g1v2(
+	id, 
+	cat,
+	subcat,
+	maintenance
+)
+
+select 
+id,
+cat, 
+subcat,
+maintenance
+from bronze.erp_px_cat_g1v2;
