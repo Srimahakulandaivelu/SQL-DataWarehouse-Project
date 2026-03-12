@@ -1,3 +1,46 @@
+-- Checking for duplicate entries
+-- expected result: null
+
+select 
+prd_id, count(*)
+from silver.crm_prd_info
+group by prd_id
+having count(*) > 1 and prd_id is not null;
+
+-- checking for trailing spaces in the string entries
+-- expected result : null
+
+select 
+prd_nm from silver.crm_prd_info
+where prd_nm != trim(prd_nm);
+
+
+-- checking if the cost is null or negative
+-- expected result: 0 
+
+select prd_id, prd_cost
+from silver.crm_prd_info
+where prd_cost is null or prd_cost < 0;
+
+-- Standarizing the names for abbreviations
+-- expected result: normalized names
+
+select distinct(prd_line)
+from silver.crm_prd_info;
+
+-- checking for invalid dates
+-- expected result: null
+
+-- some of the invalid date conditions are 
+-- the end date < start date
+-- overlapping dates 
+
+select * 
+from silver.crm_prd_info
+where prd_end_dt < prd_start_dt
+
+-- the below code is to transforming the error data and inserting in the silver layer table
+
 insert into silver.crm_prd_info (
 	prd_id, 
 	cat_id,
