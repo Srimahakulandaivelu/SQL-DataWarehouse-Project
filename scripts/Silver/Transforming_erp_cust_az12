@@ -1,0 +1,41 @@
+-- Quality of the table in silver layer ERP_CUST_AZ12
+-- validating the birthdates
+
+select bdate 
+from silver.erp_cust_az12
+where  bdate > getdate();
+
+-- checking the data of gen column
+
+select distinct(gen)
+from silver.erp_cust_az12
+
+-- the below code for transforming the data
+
+insert into silver.erp_cust_az12(
+	cid, 
+	bdate,
+	gen
+)
+
+select 
+
+-- since the cid in erp_cust_az12 has a column common in crm_cust_info
+-- making sure both the data are consistent
+
+case when cid like 'NAS%' then substring(cid, 4, len(cid))
+	 else cid
+end as cid,
+
+-- we cannot have bdate greater than current date, so making them null
+case when bdate > getdate() then null
+	 else bdate
+end as bdate,
+
+ -- normalising the gender data
+case when upper(trim(gen)) in ('M', 'MALE') then 'Male'
+	 when upper(trim(gen)) in ('F', 'FEMALE') then 'Female'
+	 else 'n/a'
+end as gen
+
+from bronze.erp_cust_az12;
