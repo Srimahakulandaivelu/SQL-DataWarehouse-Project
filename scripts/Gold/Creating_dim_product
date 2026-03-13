@@ -1,0 +1,26 @@
+-- this is a dimension table since it conatins descriptive data about the products
+
+-- giving friendly names to the columns and sorting based on the relevancy together
+-- giving surrogate key to uniquely identify each record
+
+create view gold.dim_product as 
+	select 
+
+		row_number() over (order by pi.prd_start_dt, pi.prd_key) as product_key,
+		pi.prd_id as product_id,
+		pi.prd_key as product_number,
+		pi.prd_nm as product_name,
+		pi.cat_id as category_id, 
+		pc.cat as category,
+		pc.subcat as subcategory,
+		pc.maintenance,
+		pi.prd_cost as cost,
+		pi.prd_line as product_line,
+		pi.prd_start_dt as start_date
+
+	from silver.crm_prd_info pi
+
+	left join silver.erp_px_cat_g1v2 pc  -- joining it with 
+	on pi.cat_id = pc.id
+
+	where pi.prd_end_dt is null; -- filtering out the historical data
